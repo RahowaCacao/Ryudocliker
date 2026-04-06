@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LP Clicker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0a0f;
+    --bg2: #150f1a;
+    --bg3: #1e1525;
+    --border: rgba(180,120,220,0.2);
+    --border-hover: rgba(180,120,220,0.5);
+    --accent: #b478dc;
+    --accent-dim: #7a4a99;
+    --gold: #d4a843;
+    --gold-dim: #8a6c22;
+    --text: #e8d8f0;
+    --dim: #7060808;
+    --red: #c0404a;
+    --red-dim: rgba(192,64,74,0.15);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Text', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* Ambient background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 0%, rgba(140,60,180,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 30% at 20% 80%, rgba(80,20,120,0.06) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1.3rem, 3.5vw, 2.2rem);
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-align: center;
+    padding: 1.5rem 1rem 0.3rem;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 0 40px rgba(180,120,220,0.3);
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+    color: rgba(180,120,220,0.45);
+    letter-spacing: 0.25em;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+    text-transform: uppercase;
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+  }
+
+  .layout {
+    display: flex;
+    gap: 2rem;
+    width: 100%;
+    max-width: 960px;
+    padding: 0 1.5rem 2rem;
+    position: relative;
+    z-index: 1;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  /* ---- CENTER ---- */
+  .center-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.2rem;
+    flex: 0 0 auto;
+  }
+
+  .lp-display {
+    text-align: center;
+  }
+
+  .lp-value {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(212,168,67,0.4);
+    line-height: 1;
+  }
+
+  .lp-label {
+    font-size: 0.75rem;
+    color: rgba(212,168,67,0.5);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    font-family: 'Cinzel', serif;
+    margin-top: 2px;
+  }
+
+  .lp-per-click {
+    font-size: 0.8rem;
+    color: rgba(180,120,220,0.6);
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+
+  /* Clickable image */
+  .click-zone {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .click-zone:active .char-img {
+    transform: scale(0.96);
+    filter: brightness(1.15);
+  }
+
+  .char-img {
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(180,120,220,0.35);
+    transition: transform 0.08s, filter 0.08s, box-shadow 0.2s;
+    box-shadow: 0 0 30px rgba(140,60,180,0.25), 0 0 60px rgba(140,60,180,0.1);
+    display: block;
+  }
+
+  .click-zone:hover .char-img {
+    box-shadow: 0 0 40px rgba(180,120,220,0.4), 0 0 80px rgba(140,60,180,0.15);
+    border-color: rgba(180,120,220,0.6);
+  }
+
+  /* Hammer */
+  .hammer-wrap {
+    position: absolute;
+    bottom: -12px;
+    right: -12px;
+    width: 52px;
+    height: 52px;
+    pointer-events: none;
+  }
+
+  .hammer-svg {
+    width: 100%;
+    height: 100%;
+    transform-origin: 80% 80%;
+    transition: transform 0.08s;
+  }
+
+  .click-zone:active .hammer-svg {
+    transform: rotate(-30deg) scale(1.1);
+  }
+
+  /* Floating +LP */
+  .float-lp {
+    position: fixed;
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gold);
+    text-shadow: 0 0 10px rgba(212,168,67,0.6);
+    pointer-events: none;
+    z-index: 999;
+    animation: floatUp 0.9s ease-out forwards;
+  }
+
+  @keyframes floatUp {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    60%  { opacity: 1; transform: translateY(-50px) scale(1.15); }
+    100% { opacity: 0; transform: translateY(-90px) scale(0.9); }
+  }
+
+  /* ---- UPGRADES ---- */
+  .upgrades-col {
+    flex: 0 0 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .upgrades-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    color: rgba(180,120,220,0.5);
+    text-transform: uppercase;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.2rem;
+  }
+
+  .upgrade-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .upgrade-card.affordable {
+    border-color: rgba(212,168,67,0.3);
+    cursor: pointer;
+  }
+
+  .upgrade-card.affordable:hover {
+    border-color: rgba(212,168,67,0.6);
+    background: rgba(212,168,67,0.04);
+  }
+
+  .upgrade-card.maxed {
+    border-color: rgba(180,120,220,0.4);
+    background: rgba(180,120,220,0.05);
+    opacity: 0.7;
+  }
+
+  .upgrade-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .upgrade-icon { font-size: 1.3rem; line-height: 1; }
+
+  .upgrade-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.78rem;
+    color: var(--text);
+    letter-spacing: 0.05em;
+    flex: 1;
+  }
+
+  .upgrade-level {
+    display: flex;
+    gap: 3px;
+  }
+
+  .lvl-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid rgba(180,120,220,0.4);
+    background: transparent;
+    transition: background 0.2s;
+  }
+
+  .lvl-dot.filled { background: var(--accent); border-color: var(--accent); }
+  .lvl-dot.filled.maxed-dot { background: var(--gold); border-color: var(--gold); }
+
+  .upgrade-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+  }
+
+  .upgrade-bonus {
+    font-size: 0.8rem;
+    color: var(--accent);
+  }
+
+  .upgrade-cost {
+    font-family: 'Cinzel', serif;
+    font-size: 0.72rem;
+    color: var(--gold-dim);
+    transition: color 0.2s;
+  }
+
+  .upgrade-cost.can-afford { color: var(--gold); }
+  .upgrade-cost.maxed-text { color: rgba(180,120,220,0.5); }
+
+  .upgrade-desc {
+    font-size: 0.73rem;
+    color: rgba(200,180,220,0.45);
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  /* Ripple */
+  @keyframes ripple {
+    0%   { transform: scale(0.3); opacity: 0.6; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(180,120,220,0.35);
+    width: 80px; height: 80px;
+    margin: -40px 0 0 -40px;
+    animation: ripple 0.5s ease-out forwards;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<h1>LP CLICKER</h1>
+<div class="subtitle">Accumule les LP · Souffre en silence</div>
+
+<div class="layout">
+
+  <!-- CENTER -->
+  <div class="center-col">
+    <div class="lp-display">
+      <div class="lp-value" id="lpDisplay">0</div>
+      <div class="lp-label">LP</div>
+      <div class="lp-per-click" id="perClickDisplay">+10 LP / clic</div>
+    </div>
+
+    <div class="click-zone" id="clickZone">
+      <img class="char-img" id="charImg"
+	  src = "ryudo.png"
+        alt="personnage"
+        draggable="false">
+      <!-- Hammer -->
+      <div class="hammer-wrap">
+        <svg class="hammer-svg" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="28" y="6" width="16" height="24" rx="3" fill="#8a6c22" stroke="#d4a843" stroke-width="1.2"/>
+          <rect x="30" y="4" width="12" height="8" rx="2" fill="#d4a843"/>
+          <rect x="24" y="4" width="5" height="8" rx="1.5" fill="#c09020"/>
+          <rect x="33" y="28" width="4" height="20" rx="2" fill="#5a3a10" stroke="#8a6022" stroke-width="0.8"/>
+          <rect x="28" y="6" width="16" height="6" rx="2" fill="#e8b840" opacity="0.5"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPGRADES -->
+  <div class="upgrades-col">
+    <div class="upgrades-title">Améliorations</div>
+
+    <div class="upgrade-card" id="upg-radiateur" onclick="buyUpgrade('radiateur')">
+      <div class="upgrade-header">
+        <span class="upgrade-icon">🔧</span>
+        <span class="upgrade-name">Radiateur fuyant</span>
+        <div class="upgrade-level" id="lvl-radiateur"></div>
+      </div>
+      <div class="upgrade-desc">Ce bruit... encore cette nuit.</div>
+      <div class="upgrade-stats">
+        <span class="upgrade-bonus">+2 LP / clic</span>
+        <span class="upgrade-cost" id="cost-radiateur">400 LP</span>
+      </div>
+    </div>
+
+    <div class="upgrade-card" id="upg-voisin" onclick="buyUpgrade('voisin')">
+      <div class="upgrade-header">
+        <span class="upgrade-icon">📢</span>
+        <span class="upgrade-name">Voisin bruyant</span>
+        <div class="upgrade-level" id="lvl-voisin"></div>
+      </div>
+      <div class="upgrade-desc">Ça s'arrête jamais.</div>
+      <div class="upgrade-stats">
+        <span class="upgrade-bonus">+4 LP / clic</span>
+        <span class="upgrade-cost" id="cost-voisin">800 LP</span>
+      </div>
+    </div>
+
+    <div class="upgrade-card" id="upg-chien" onclick="buyUpgrade('chien')">
+      <div class="upgrade-header">
+        <span class="upgrade-icon">🐕</span>
+        <span class="upgrade-name">Chien moisi</span>
+        <div class="upgrade-level" id="lvl-chien"></div>
+      </div>
+      <div class="upgrade-desc">Il aboie à 3h du mat.</div>
+      <div class="upgrade-stats">
+        <span class="upgrade-bonus">+10 LP / clic</span>
+        <span class="upgrade-cost" id="cost-chien">20 000 LP</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const UPGRADES = {
+  radiateur: { name: 'Radiateur fuyant', baseBonus: 2, basePrice: 400,  maxLevel: 5 },
+  voisin:    { name: 'Voisin bruyant',   baseBonus: 4, basePrice: 800,  maxLevel: 5 },
+  chien:     { name: 'Chien moisi',      baseBonus: 10, basePrice: 20000, maxLevel: 5 },
+};
+
+let lp = 0;
+let lpPerClick = 10;
+const levels = { radiateur: 0, voisin: 0, chien: 0 };
+
+function getPrice(key, level) {
+  const u = UPGRADES[key];
+  return Math.round(u.basePrice * Math.pow(3, level));
+}
+
+function fmt(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + ' M';
+  if (n >= 1000) return n.toLocaleString('fr-FR');
+  return String(n);
+}
+
+function renderDots(key) {
+  const container = document.getElementById('lvl-' + key);
+  const lvl = levels[key];
+  const max = UPGRADES[key].maxLevel;
+  container.innerHTML = '';
+  for (let i = 0; i < max; i++) {
+    const d = document.createElement('div');
+    d.className = 'lvl-dot' + (i < lvl ? (lvl === max ? ' filled maxed-dot' : ' filled') : '');
+    container.appendChild(d);
+  }
+}
+
+function updateCards() {
+  for (const key of Object.keys(UPGRADES)) {
+    const u = UPGRADES[key];
+    const lvl = levels[key];
+    const card = document.getElementById('upg-' + key);
+    const costEl = document.getElementById('cost-' + key);
+
+    renderDots(key);
+
+    if (lvl >= u.maxLevel) {
+      card.className = 'upgrade-card maxed';
+      costEl.className = 'upgrade-cost maxed-text';
+      costEl.textContent = 'MAX';
+    } else {
+      const price = getPrice(key, lvl);
+      const canAfford = lp >= price;
+      card.className = 'upgrade-card' + (canAfford ? ' affordable' : '');
+      costEl.className = 'upgrade-cost' + (canAfford ? ' can-afford' : '');
+      costEl.textContent = fmt(price) + ' LP';
+    }
+  }
+}
+
+function buyUpgrade(key) {
+  const u = UPGRADES[key];
+  const lvl = levels[key];
+  if (lvl >= u.maxLevel) return;
+  const price = getPrice(key, lvl);
+  if (lp < price) return;
+  lp -= price;
+  levels[key]++;
+  lpPerClick += u.baseBonus;
+  updateDisplay();
+}
+
+function updateDisplay() {
+  document.getElementById('lpDisplay').textContent = fmt(lp);
+  document.getElementById('perClickDisplay').textContent = '+' + fmt(lpPerClick) + ' LP / clic';
+  updateCards();
+}
+
+// Click handler
+const clickZone = document.getElementById('clickZone');
+clickZone.addEventListener('click', function(e) {
+  lp += lpPerClick;
+  updateDisplay();
+
+  // Floating text
+  const span = document.createElement('span');
+  span.className = 'float-lp';
+  span.textContent = '+' + fmt(lpPerClick) + ' LP';
+  span.style.left = (e.clientX - 30) + 'px';
+  span.style.top  = (e.clientY - 20) + 'px';
+  document.body.appendChild(span);
+  span.addEventListener('animationend', () => span.remove());
+
+  // Ripple
+  const rect = clickZone.getBoundingClientRect();
+  const rip = document.createElement('div');
+  rip.className = 'ripple';
+  rip.style.left = (e.clientX - rect.left) + 'px';
+  rip.style.top  = (e.clientY - rect.top) + 'px';
+  clickZone.appendChild(rip);
+  rip.addEventListener('animationend', () => rip.remove());
+});
+
+// Init
+for (const key of Object.keys(UPGRADES)) renderDots(key);
+updateDisplay();
+</script>
+</body>
+</html>
